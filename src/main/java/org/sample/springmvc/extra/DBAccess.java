@@ -12,6 +12,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Repository
 // rollbackForでExceptionを指定すると、指定したExceptionが発生した場合にロールバックが行われる
@@ -22,7 +23,8 @@ public class DBAccess {
     @Autowired SqlSessionFactory sqlSessionFactory;
     @Autowired PlatformTransactionManager transactionManager;
     
-    public List<TestTable> dbAccess() throws Exception {
+    // PlatformTransactionManager直版
+    public List<TestTable> _dbAccess() throws Exception {
         DefaultTransactionDefinition def = new DefaultTransactionDefinition();
         def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 
@@ -40,4 +42,18 @@ public class DBAccess {
         }
     }
 
+    // TransactionTemplate版
+    public List<TestTable> dbAccess() {
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            SqlSession session = sqlSessionFactory.openSession();
+            System.out.println(session.getConfiguration().getDatabaseId());
+            
+            SqlMapper mapper = session.getMapper(SqlMapper.class);
+            mapper.insertTestTable(1, "name", "address");
+            
+            List<TestTable> list = mapper.selectTestTables(1, "false", "a");
+            status.setRollbackOnly();
+            return list;
+        });
+    }
 }

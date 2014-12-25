@@ -78,9 +78,9 @@ public class AppConfig {
         System.out.println("Set Datasource");
         DataSource ds = null;
         try {
-            // InitialContextを使っても大して変わらない？
+            // InitialContextを使っても大して変わらない？キャストが不要なのは良いかも
             JndiTemplate jndi = new JndiTemplate();
-            ds = (DataSource) jndi.lookup("java:comp/env/jdbc/tpcwDS");
+            ds = jndi.lookup("java:comp/env/jdbc/tpcwDS", DataSource.class);
         } catch (Exception ex) {}
         
         // DataSourceをTransactionAwareDataSourceProxyでラップして返却
