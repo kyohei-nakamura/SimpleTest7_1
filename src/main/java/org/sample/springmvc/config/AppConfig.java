@@ -2,7 +2,6 @@ package org.sample.springmvc.config;
 
 import java.util.Properties;
 
-import javax.naming.InitialContext;
 import javax.sql.DataSource;
 
 import org.apache.ibatis.mapping.Environment;
@@ -62,7 +61,8 @@ public class AppConfig {
             provider.setProperties(props);
             conf.setDatabaseId(provider.getDatabaseId(dataSource));
             
-            // SqlMapperのpackageからSqlMapper.xmlを検索して読み込み（するらしい）
+            // SqlMapperのpackageからSqlMapper.xmlを検索して読み込み
+            // addMapperにより追加されたClassはMapperRegistryに登録され、SqlSession#getMapperで取得できるようになる
             conf.addMapper(SqlMapper.class);
             sqlSessionFactory = new SqlSessionFactoryBuilder().build(conf);
         } catch (Exception ex) {
@@ -83,7 +83,9 @@ public class AppConfig {
             ds = jndi.lookup("java:comp/env/jdbc/tpcwDS", DataSource.class);
         } catch (Exception ex) {}
         
-        // DataSourceをTransactionAwareDataSourceProxyでラップして返却
+        // SqlSessionFactoryに渡されたDataSourceからコネクションを取得する際に、直接DataSource#getConnection()を
+        // 呼ばないようにするためにDataSourceをTransactionAwareDataSourceProxyでラップして返却
+        // ここでラップしないで、Environment構築時にラップしてもよいと思われる
         return new TransactionAwareDataSourceProxy(ds);
     }
     
@@ -92,6 +94,8 @@ public class AppConfig {
         System.out.println("Set TransactionManager");
         DataSourceTransactionManager dataSourceTransactionManager = new DataSourceTransactionManager();
         
+        // DataSourceTransactionManager#setDataSource()では渡されたDataSourceがTransactionAwareDataSourceProxyの
+        // インスタンスであった場合、元のDataSourceを保持している
         dataSourceTransactionManager.setDataSource(dataSource());
  
         return dataSourceTransactionManager;
